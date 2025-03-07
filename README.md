@@ -3,6 +3,9 @@
 
 > **Note:** This is a tutorial to start building an example of a distributed app and is not intended for production deployment.
 
+
+![img](img/image.png)
+
 ## **Introduction**
 In this tutorial, we will create a web app that allows users to submit Blender jobs. The app will consist of a NodeJS and Express API with endpoints to submit and check the status of rendering jobs. We'll use a hardcoded Blender example file for demonstration purposes.
 
