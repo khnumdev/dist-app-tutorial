@@ -1,7 +1,7 @@
 
 # **How to build your first distributed system**
 
-> **Note:** This is a tutorial to start building an example of a distributed system and is not intended for production deployment.
+> **Note:** This is a tutorial to start building an example of a distributed system and is not intended for a production deployment.
 
 
 ![img](img/image.png)
@@ -10,13 +10,13 @@
 
 [Introduction](#introduction)
 
+0. [Setting Up the Environment](#setting-up-the-environment)
+
 1. [Part 1: Rendering node](#part-1-creating-a-web-app-to-submit-blender-jobs)
-   - [Introduction](#introduction)
-   - [Step 1: Setting Up the Environment](#step-1-setting-up-the-environment)
-   - [Step 2: Creating the API](#step-2-creating-the-api)
-   - [Step 3: Implementing the Endpoints](#step-3-implementing-the-endpoints)
-   - [Step 4: Managing Processes](#step-4-managing-processes)
-   - [Step 5: Understanding Response Codes and Headers](#step-5-understanding-response-codes-and-headers)
+   - [Step 1: Creating the API](#step-1-creating-the-api)
+   - [Step 2: Implementing the Endpoints](#step-2-implementing-the-endpoints)
+   - [Step 3: Managing Processes](#step-3-managing-processes)
+   - [Step 4: Understanding Response Codes and Headers](#step-4-understanding-response-codes-and-headers)
    - [Conclusion](#conclusion)
 
 2. [Part 2: Creating a render Orchestrator](#part-2-creating-an-orchestrator-for-blender-jobs)
@@ -70,27 +70,36 @@
 ## **Introduction**
 In this tutorial, we will create a web app that allows users to submit Blender jobs. The app will consist of a NodeJS and Express API with endpoints to submit and check the status of rendering jobs. We'll use a hardcoded Blender example file for demonstration purposes.
 
-## **Step 1: Setting Up the Environment**
+## **Setting Up the Environment**
 
-### **Install NodeJS and Express**
-First, make sure you have NodeJS installed. You can download it from [here](https://nodejs.org/). Then, install the Express framework by running:
-
-```bash
-npm install express
-```
+### **Install NodeJS**
+First, make sure you have NodeJS installed. You can download it from [here](https://nodejs.org/).
 
 ### **Install Blender**
 Ensure Blender is installed on your system and accessible via the command line. You can download Blender from [here](https://www.blender.org/download/).
 
+The image used in this example is [Racing car sample](https://www.blender.org/download/demo/test/splash-pokedstudio.blend.zip).
+
+**NOTE ABOUT BLENDER**: Blender rendering is an intensive resource consumption process. In this tutorial, some examples suggests to render up to 5 frames or to have multiple render processes working in parallel in your machine. In case of your computer face issues doing this, please adjust these numbers to a reasonable value in order to follow the tutorial.
+
+### **Main folder**
+
+We are going to create our working folder for this tutorial:
+
+```bash
+mkdir distributed-system-tutorial
+cd distributed-system-tutorial
+```
+
 ## Part 1: Rendering node
-### **Step 2: Creating the API**
+### **Step 1: Creating the API**
 
 #### **1. Initialize the NodeJS Project**
 Set up a new NodeJS project and install the necessary dependencies:
 
 ```bash
-mkdir blender-job-api
-cd blender-job-api
+mkdir server
+cd server
 npm init -y
 npm install express
 ```
@@ -742,10 +751,10 @@ networks:
 
 ### **Directory Structure**
 
-Ensure your project directory is structured as follows:
+Ensure your `distributed-system-tutorial` directory is structured as follows:
 
 ```
-project/
+distributed-system-tutorial/
 │
 ├── server/
 │   ├── Dockerfile
@@ -762,115 +771,14 @@ project/
 
 ### **Step 2: Updating the Orchestrator to Reference Three Servers**
 
-Update the `orchestrator.js` file to reference the three Blender servers:
+Update the `NODES` in `orchestrator.js` file to reference the three Blender servers:
 
 ```javascript
-const express = require('express');
-const axios = require('axios'); // For making HTTP requests to the nodes
-const app = express();
-
-app.use(express.json());
-
-const port = 4000;
 const NODES = [
     'http://blender-server-1:3000', // First server
     'http://blender-server-2:3000', // Second server
     'http://blender-server-3:3000', // Third server
 ]; // List of node endpoints
-const BATCH_SIZE = 5; // Define batch size as a constant
-let jobs = {}; // Store all jobs
-
-// POST /render endpoint to start rendering a movie
-app.post('/render', async (req, res) => {
-    const { from, to } = req.body;
-    if (from === undefined || to === undefined) {
-        return res.status(400).send('Invalid input');
-    }
-
-    const jobId = generateJobId();
-    jobs[jobId] = { status: 'pending', batches: [] };
-    const frameChunks = splitFramesIntoChunks(from, to, BATCH_SIZE);
-    const jobPromises = frameChunks.map((chunk, index) =>
-        assignJobToNode(NODES[index % NODES.length], chunk.from, chunk.to, jobId)
-    );
-
-    try {
-        const results = await Promise.all(jobPromises);
-        jobs[jobId].batches.push(...results); // Save batch info
-        res.status(202).header('Location', `/status/${jobId}`).send({ jobId });
-    } catch (error) {
-        console.error('Error assigning jobs:', error);
-        jobs[jobId].status = 'failed';
-        res.status(500).send('Failed to distribute jobs');
-    }
-});
-
-// GET /status/:jobId endpoint to check overall job status
-app.get('/status/:jobId', async (req, res) => {
-    const jobId = req.params.jobId;
-    const job = jobs[jobId];
-
-    if (!job) {
-        return res.status(404).send('Job not found');
-    }
-
-    try {
-        const statusPromises = job.batches.map(batch =>
-            checkJobStatus(batch.node, batch.pid)
-        );
-        const statuses = await Promise.all(statusPromises);
-        const allCompleted = statuses.every(status => status === 'completed');
-
-        if (allCompleted) {
-            job.status = 'completed';
-            res.status(200).send('Job completed');
-        } else {
-            job.status = 'in-progress';
-            res.status(202).header('Location', `/status/${jobId}`).header('Retry-After', 5).send('Job still running');
-        }
-    } catch (error) {
-        console.error('Error checking job statuses:', error);
-        res.status(500).send('Failed to fetch statuses');
-    }
-});
-
-// Utility function to generate a unique job ID
-function generateJobId() {
-    return Math.random().toString(36).substring(2, 15);
-}
-
-// Utility function to split frames into chunks
-function splitFramesIntoChunks(from, to, batchSize) {
-    const chunks = [];
-    for (let i = from; i <= to; i += batchSize) {
-        chunks.push({ from: i, to: Math.min(i + batchSize - 1, to) });
-    }
-    return chunks;
-}
-
-// Utility function to assign a job to a node
-async function assignJobToNode(nodeUrl, from, to, jobId) {
-    console.log(`Invoking URL: ${nodeUrl}/job with frames ${from} to ${to}`);
-    try {
-        const response = await axios.post(`${nodeUrl}/job`, { from, to });
-        console.log(`Job assigned to ${nodeUrl} with PID: ${response.data.pid}`);
-        return { node: nodeUrl, pid: response.data.pid };
-    } catch (error) {
-        console.error(`Failed to assign job to ${nodeUrl}:`, error.message);
-        throw error;
-    }
-}
-
-// Utility function to check job status
-async function checkJobStatus(nodeUrl, pid) {
-    const response = await axios.get(`${nodeUrl}/job/${pid}`);
-    return response.data.status === 'Job completed' ? 'completed' : 'running';
-}
-
-// Start the orchestrator server
-app.listen(port, () => {
-    console.log(`Orchestrator running on port ${port}`);
-});
 ```
 
 ### **Step 3: Building and Running the Docker Compose Services**
