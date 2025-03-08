@@ -1,7 +1,7 @@
 
-# **How to build your first distributed app**
+# **How to build your first distributed system**
 
-> **Note:** This is a tutorial to start building an example of a distributed app and is not intended for production deployment.
+> **Note:** This is a tutorial to start building an example of a distributed system and is not intended for production deployment.
 
 
 ![img](img/image.png)
@@ -10,7 +10,7 @@
 
 [Introduction](#introduction)
 
-1. [Part 1: Creating a Web App to Submit Blender Jobs](#part-1-creating-a-web-app-to-submit-blender-jobs)
+1. [Part 1: Rendering node](#part-1-creating-a-web-app-to-submit-blender-jobs)
    - [Introduction](#introduction)
    - [Step 1: Setting Up the Environment](#step-1-setting-up-the-environment)
    - [Step 2: Creating the API](#step-2-creating-the-api)
@@ -19,7 +19,7 @@
    - [Step 5: Understanding Response Codes and Headers](#step-5-understanding-response-codes-and-headers)
    - [Conclusion](#conclusion)
 
-2. [Part 2: Creating an Orchestrator for Blender Jobs](#part-2-creating-an-orchestrator-for-blender-jobs)
+2. [Part 2: Creating a render Orchestrator](#part-2-creating-an-orchestrator-for-blender-jobs)
    - [Introduction](#introduction-1)
    - [Why Use an Orchestrator?](#why-use-an-orchestrator)
    - [Step 1: Setting Up the Orchestrator Environment](#step-1-setting-up-the-orchestrator-environment)
@@ -57,6 +57,9 @@
    - [Support for 429 Response (Too Many Requests)](#support-for-429-response-too-many-requests)
    - [Limit Server to Receive a Single Request](#limit-server-to-receive-a-single-request)
    - [Strategies to Deploy in Production (e.g., AKS)](#strategies-to-deploy-in-production-eg-aks)
+   - [Discovery System](#discovery-system)
+   - [Using Queues Instead of Direct HTTP Calls](#using-queues-instead-of-direct-http-calls)
+   - [Logging Improvements for Traceability](#logging-improvements-for-traceability)
    - [Other Potential Improvements](#other-potential-improvements)
      - [Load Balancing](#load-balancing)
      - [Fault Tolerance and High Availability](#fault-tolerance-and-high-availability)
@@ -484,6 +487,35 @@ For more information on promises, refer to the [MDN Web Docs on Promises](https:
 ## **Conclusion**
 In Part 2 of this tutorial, we've created an orchestrator to manage and distribute Blender rendering jobs across multiple nodes. The orchestrator API splits the frame range into smaller batches, submits them to the nodes, and monitors their progress. We used NodeJS and Express to build the orchestrator and provided `curl` examples for submitting and checking the status of jobs.
 
+           +---------+
+           | Client  |
+           +---------+
+                |
+                | Render Request (frames 1-20)
+                v
+         +-----------------+
+         |  Orchestrator   |
+         | (Split & Assign)|
+         +-----------------+
+                |    \
+        Batch 1 |     \  Batch 2,3,...
+                v      \
+         +---------------+    +---------------+
+         | Blender       |    | Blender       |
+         | Server        |    | Server        |
+         +---------------+    +---------------+
+                ^      \
+                |       \
+                +--------+
+                     |
+         (Status Updates, Aggregation)
+                     |
+                     v
+               +----------+
+               | Client   |
+               +----------+
+
+
 ## **Part 3: Dockerizing the Blender Server and Orchestrator**
 
 ### **Introduction**
@@ -865,6 +897,33 @@ This is the same `curl` command used in the regular case.
 
 Using Docker Compose simplifies the management and deployment of multi-container applications like the Blender server and orchestrator. By setting up three Blender server instances, you can distribute rendering tasks more efficiently. This setup can be easily extended for deployment to other environments.
 
+                      +---------+
+                      | Client  |
+                      +---------+
+                           |
+                           | Render Request (frames 1-20)
+                           v
+                    +------------------+
+                    |  Orchestrator    |
+                    | (Split job into  |
+                    |     batches)     |
+                    +------------------+
+                          / |  \   ...  
+                         /  |   \
+               +----------+ +---------+ +----------+  
+               | Blender  | | Blender | | Blender  | 
+               | Server 1 | | Server 2| | Server 3 |
+               +----------+ +---------+ +----------+
+                   ^            ^            ^
+                   |            |            |
+                   +----Status Updates-------+
+                           |
+                           v
+                      +---------+
+                      | Client  |
+                      +---------+
+
+
 ## **Enhancements and Future Improvements**
 
 ### **Introduction**
@@ -895,6 +954,32 @@ Deploying the Blender server and orchestrator in a production environment requir
 - **Rolling Updates**: Use rolling updates to deploy changes without downtime.
 - **Monitoring and Logging**: Integrate with Azure Monitor and Azure Log Analytics to monitor and log application performance and issues.
 - **Documentation**: [Azure Kubernetes Service (AKS) Documentation](https://learn.microsoft.com/en-us/azure/aks/)
+
+### **Discovery System**
+Implementing a discovery system can automatically detect how many nodes (Blender servers) are available. This can help dynamically adjust the load distribution and optimize resource utilization.
+
+**Key Points:**
+- **Service Discovery**: Use tools like Consul, etcd, or Kubernetes built-in service discovery to detect available nodes.
+- **AKS Integration**: When using AKS, service discovery is automatically handled by Kubernetes, which maintains an updated list of available pods.
+- **Documentation**: [Kubernetes Service Discovery](https://kubernetes.io/docs/concepts/services-networking/service/#discovering-services)
+
+### **Using Queues Instead of Direct HTTP Calls**
+Consider using message queues to decouple the orchestrator from the Blender servers. Queues can improve reliability and scalability by buffering requests and ensuring they are processed even if some servers are temporarily unavailable.
+
+**Key Points:**
+- **Message Queues**: Use systems like RabbitMQ, Kafka, or Azure Service Bus to manage job requests.
+- **Decoupling**: Queues help decouple the orchestrator from the Blender servers, enabling asynchronous processing.
+- **Retry Mechanism**: Queues can automatically retry failed jobs, improving reliability.
+- **Documentation**: [RabbitMQ Documentation](https://www.rabbitmq.com/documentation.html), [Apache Kafka Documentation](https://kafka.apache.org/documentation/), [Azure Service Bus Documentation](https://docs.microsoft.com/en-us/azure/service-bus/)
+
+### **Logging Improvements for Traceability**
+Implement comprehensive logging to ensure traceability of the entire process. Logs should capture key events, errors, and performance metrics to help monitor and debug the system.
+
+**Key Points:**
+- **Structured Logging**: Use structured logging to capture detailed information about each event.
+- **Centralized Logging**: Aggregate logs in a centralized system like Elasticsearch, Logstash, and Kibana (ELK stack) or Azure Monitor.
+- **Tracing**: Implement distributed tracing to follow the flow of requests across services and identify performance bottlenecks.
+- **Documentation**: [ELK Stack Documentation](https://www.elastic.co/what-is/elk-stack), [Azure Monitor Documentation](https://docs.microsoft.com/en-us/azure/azure-monitor/)
 
 ### **Other Potential Improvements**
 
