@@ -8,12 +8,6 @@
 
 # **Index**
 
-Of course! Here's the updated markdown for the index covering Part 1, Part 2, and Part 3:
-
----
-
-# **Index**
-
 1. [Part 1: Creating a Web App to Submit Blender Jobs](#part-1-creating-a-web-app-to-submit-blender-jobs)
    - [Introduction](#introduction)
    - [Step 1: Setting Up the Environment](#step-1-setting-up-the-environment)
@@ -46,10 +40,14 @@ Of course! Here's the updated markdown for the index covering Part 1, Part 2, an
    - [Test the Orchestrator](#test-the-orchestrator)
    - [Conclusion](#conclusion-2)
 
----
-
-Feel free to use this index in your document. Let me know if there's anything else you need!
-
+4. [Part 4: Using Docker Compose for Deployment](#part-4-using-docker-compose-for-deployment)
+   - [Introduction](#introduction-3)
+   - [Why Docker Compose?](#why-docker-compose)
+   - [Step 1: Creating the `docker-compose.yml` File](#step-1-creating-the-docker-composeyml-file)
+   - [Directory Structure](#directory-structure)
+   - [Step 2: Building and Running the Docker Compose Services](#step-2-building-and-running-the-docker-compose-services)
+   - [Step 3: Testing the Orchestrator](#step-3-testing-the-orchestrator)
+   - [Conclusion](#conclusion-3)
 
 ## **Introduction**
 In this tutorial, we will create a web app that allows users to submit Blender jobs. The app will consist of a NodeJS and Express API with endpoints to submit and check the status of rendering jobs. We'll use a hardcoded Blender example file for demonstration purposes.
@@ -631,3 +629,88 @@ This is the same `curl` command used in the regular case.
 ### **Conclusion**
 
 Dockerizing the Blender server and orchestrator ensures consistent, portable, and isolated environments for running these applications.
+
+## **Part 4: Using Docker Compose for Deployment**
+
+### **Introduction**
+In this part of the tutorial, we'll use Docker Compose to manage and run multiple containers for the Blender server and the orchestrator.
+
+### **Why Docker Compose?**
+Docker Compose simplifies the process of managing multi-container Docker applications. It allows you to define and run multiple services in a single file (`docker-compose.yml`), making it easier to manage dependencies, networking, and configuration.
+
+### **Step 1: Creating the `docker-compose.yml` File**
+
+Create a `docker-compose.yml` file in the project directory to define the services for the Blender server and the orchestrator:
+
+```yaml
+version: '3.8'
+services:
+  blender-server:
+    build:
+      context: ./server
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./blend/files:/app/blend/files
+      - ./output:/app/output
+    networks:
+      - blender-network
+
+  orchestrator:
+    build:
+      context: ./orchestrator
+    ports:
+      - "4000:4000"
+    depends_on:
+      - blender-server
+    networks:
+      - blender-network
+
+networks:
+  blender-network:
+    driver: bridge
+```
+
+### **Directory Structure**
+
+Ensure your project directory is structured as follows:
+
+```
+project/
+│
+├── server/
+│   ├── Dockerfile
+│   ├── server.js
+│   ├── package.json
+│   └── blend/
+│       └── files/
+├── orchestrator/
+│   ├── Dockerfile
+│   ├── orchestrator.js
+│   ├── package.json
+└── docker-compose.yml
+```
+
+### **Step 2: Building and Running the Docker Compose Services**
+
+Navigate to the project directory and run the following command to build and start the services:
+
+```bash
+docker-compose up --build
+```
+
+This command will build the Docker images for both the Blender server and the orchestrator, mount the volumes, and start the containers.
+
+### **Step 3: Testing the Orchestrator**
+
+Submit a render request for 20 frames (split into batches of 5 frames) using `curl`:
+
+```bash
+curl -X POST http://localhost:4000/render -H "Content-Type: application/json" -d '{"from": 1, "to": 20}' -i
+```
+
+This is the same `curl` command used in the regular case.
+
+### **Conclusion**
+
+Using Docker Compose simplifies the management and deployment of multi-container applications like the Blender server and orchestrator. This setup can be easily extended for deployment to other environments.
