@@ -6,6 +6,51 @@
 
 ![img](img/image.png)
 
+# **Index**
+
+Of course! Here's the updated markdown for the index covering Part 1, Part 2, and Part 3:
+
+---
+
+# **Index**
+
+1. [Part 1: Creating a Web App to Submit Blender Jobs](#part-1-creating-a-web-app-to-submit-blender-jobs)
+   - [Introduction](#introduction)
+   - [Step 1: Setting Up the Environment](#step-1-setting-up-the-environment)
+   - [Step 2: Creating the API](#step-2-creating-the-api)
+   - [Step 3: Implementing the Endpoints](#step-3-implementing-the-endpoints)
+   - [Step 4: Managing Processes](#step-4-managing-processes)
+   - [Step 5: Understanding Response Codes and Headers](#step-5-understanding-response-codes-and-headers)
+   - [Conclusion](#conclusion)
+
+2. [Part 2: Creating an Orchestrator for Blender Jobs](#part-2-creating-an-orchestrator-for-blender-jobs)
+   - [Introduction](#introduction-1)
+   - [Why Use an Orchestrator?](#why-use-an-orchestrator)
+   - [Step 1: Setting Up the Orchestrator Environment](#step-1-setting-up-the-orchestrator-environment)
+   - [Step 2: Creating the Orchestrator API](#step-2-creating-the-orchestrator-api)
+   - [Step 3: Running the Orchestrator Server](#step-3-running-the-orchestrator-server)
+   - [Step 4: Using the Orchestrator API](#step-4-using-the-orchestrator-api)
+   - [Conclusion](#conclusion-1)
+
+3. [Part 3: Dockerizing the Blender Server and Orchestrator](#part-3-dockerizing-the-blender-server-and-orchestrator)
+   - [Introduction](#introduction-2)
+   - [Why Docker?](#why-docker)
+   - [Limitations and Considerations](#limitations-and-considerations)
+   - [Warning: Limited CPU/GPU Resources in Docker](#warning-limited-cpugpu-resources-in-docker)
+   - [Step 1: Installing Docker](#step-1-installing-docker)
+   - [Step 2: Changes Required in `server.js` for Supporting Docker](#step-2-changes-required-in-serverjs-for-supporting-docker)
+   - [Step 3: Dockerfile for the Blender Server](#step-3-dockerfile-for-the-blender-server)
+   - [Step 4: Docker Network](#step-4-docker-network)
+   - [Step 5: Changes Required in `orchestrator.js` for Supporting Docker Network](#step-5-changes-required-in-orchestratorjs-for-supporting-docker-network)
+   - [Dockerfile for the Orchestrator](#dockerfile-for-the-orchestrator)
+   - [Test the Orchestrator](#test-the-orchestrator)
+   - [Conclusion](#conclusion-2)
+
+---
+
+Feel free to use this index in your document. Let me know if there's anything else you need!
+
+
 ## **Introduction**
 In this tutorial, we will create a web app that allows users to submit Blender jobs. The app will consist of a NodeJS and Express API with endpoints to submit and check the status of rendering jobs. We'll use a hardcoded Blender example file for demonstration purposes.
 
@@ -427,3 +472,162 @@ For more information on promises, refer to the [MDN Web Docs on Promises](https:
 
 ## **Conclusion**
 In Part 2 of this tutorial, we've created an orchestrator to manage and distribute Blender rendering jobs across multiple nodes. The orchestrator API splits the frame range into smaller batches, submits them to the nodes, and monitors their progress. We used NodeJS and Express to build the orchestrator and provided `curl` examples for submitting and checking the status of jobs.
+
+## **Part 3: Dockerizing the Blender Server and Orchestrator**
+
+### **Introduction**
+In this part of the tutorial, we'll create Docker images for both the Blender server (from Part 1) and the orchestrator (from Part 2). We'll use the `linuxserver/blender` Docker image as a base for the server and build custom Docker images for both components. This process will help ensure consistency, portability, and ease of deployment.
+
+### **Why Docker?**
+Docker provides a way to package and run applications in isolated environments called containers. This approach offers several benefits:
+- **Consistency**: Ensures that the application runs the same way in any environment.
+- **Portability**: Containers can be easily shared and deployed across different systems.
+- **Isolation**: Keeps applications and their dependencies separate from the host system.
+- **Scalability**: Simplifies scaling applications by running multiple containers.
+
+### **Limitations and Considerations**
+- **Image Size**: Blender is a large application, so the Docker image may be substantial in size.
+- **Resource Management**: Running Blender inside a container may require careful tuning of resource limits to avoid overwhelming the host system.
+- **Storage**: Ensure that the Blender files and output directories are properly mounted to access them outside the container.
+
+### **Warning: Limited CPU/GPU Resources in Docker**
+It's important to note that Docker has limited access to CPU and GPU resources, which may not be ideal for resource-intensive applications like Blender. For more information on Docker's limitations with CPU and GPU resources, refer to the following links:
+- **[Docker CPU Limitations](https://docs.docker.com/config/containers/resource_constraints/#cpu)**
+- **[Docker GPU Limitations](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/overview.html)**
+
+However, for the purpose of this tutorial, Docker is used to demonstrate the basics of containerization and orchestration.
+
+### **Step 1: Installing Docker**
+
+To get started with Docker, you'll need to install it on your machine. Follow the instructions for your operating system:
+
+- **[Docker for Windows](https://docs.docker.com/docker-for-windows/install/)**
+- **[Docker for Mac](https://docs.docker.com/docker-for-mac/install/)**
+- **[Docker for Linux](https://docs.docker.com/engine/install/)**
+
+### **Step 2: Changes Required in `server.js` for Supporting Docker**
+
+Update the `server.js` file with the following changes to support running inside a Docker container:
+
+```javascript
+const port = 3000; // Port to match Dockerfile
+
+const blenderPath = '/usr/bin/blender'; // Blender path inside the container
+const blendFilePath = '/app/blend/files/splash-pokedstudio.blend'; // Adjust to your mounted volume path
+const outputDir = '/app/output/blender-render_####'; // Adjust to your mounted volume path
+```
+
+### **Step 3: Dockerfile for the Blender Server**
+
+Create a `Dockerfile` for the Blender server in the project directory:
+
+```dockerfile
+# Use the linuxserver/blender Docker image as the base
+FROM linuxserver/blender:latest
+
+# Install NodeJS and npm
+RUN apt-get update && apt-get install -y \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy application files into the container
+COPY . .
+
+# Install NodeJS dependencies
+RUN npm install
+
+# Expose the port that your API will run on
+EXPOSE 3000
+
+# Override the entrypoint to bypass starting Xvnc and Openbox
+ENTRYPOINT []
+
+# Start the NodeJS application
+CMD ["node", "server.js"]
+```
+
+### **Building and Running the Docker Image**
+
+1. **Build the Docker image:**
+   ```bash
+   docker build -t blender-server .
+   ```
+
+2. **Run the container, ensuring that the Blender files and output directories are properly mounted:**
+   ```bash
+   docker run -p 3000:3000 --network blender-network --name blender-server -v /path/to/blend/files:/app/blend/files -v /path/to/output:/app/output blender-server
+   ```
+
+Replace `/path/to/blend/files` and `/path/to/output` with the actual paths on your host system.
+
+### **Step 4: Docker Network**
+
+To allow communication between the Blender server and the orchestrator, create a custom Docker network:
+
+```bash
+docker network create blender-network
+```
+
+### **Step 5: Changes Required in `orchestrator.js` for Supporting Docker Network**
+
+Update the `orchestrator.js` file with the following changes to use the container name as the hostname:
+
+```javascript
+const NODES = [
+    'http://blender-server:3000', // Use the container name as the hostname
+];
+```
+
+### **Dockerfile for the Orchestrator**
+
+Create a `Dockerfile` for the orchestrator in its project directory:
+
+```dockerfile
+# Use the official NodeJS image as the base
+FROM node:16
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy application files into the container
+COPY . .
+
+# Install NodeJS dependencies
+RUN npm install
+
+# Expose the port that your API will run on
+EXPOSE 4000
+
+# Start the NodeJS application
+CMD ["node", "orchestrator.js"]
+```
+
+### **Building and Running the Docker Image**
+
+1. **Build the Docker image:**
+   ```bash
+   docker build -t orchestrator .
+   ```
+
+2. **Run the container on the custom network:**
+   ```bash
+   docker run -p 4000:4000 --network blender-network orchestrator
+   ```
+
+### **Test the Orchestrator**
+
+Submit a render request for 20 frames (split into batches of 5 frames) using `curl`:
+
+```bash
+curl -X POST http://localhost:4000/render -H "Content-Type: application/json" -d '{"from": 1, "to": 20}' -i
+```
+
+This is the same `curl` command used in the regular case.
+
+### **Conclusion**
+
+Dockerizing the Blender server and orchestrator ensures consistent, portable, and isolated environments for running these applications.
