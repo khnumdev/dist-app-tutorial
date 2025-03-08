@@ -6,6 +6,10 @@
 
 ![img](img/image.png)
 
+## Contributing
+
+We welcome contributions! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contribute to this project.
+
 # **Index**
 
 [Introduction](#introduction)
@@ -73,7 +77,7 @@ In this tutorial, we will create a web app that allows users to submit Blender j
 ## **Setting Up the Environment**
 
 ### **Install NodeJS**
-First, make sure you have NodeJS installed. You can download it from [here](https://nodejs.org/).
+First, make sure you have NodeJS and NPM installed. You can download it from [here](https://nodejs.org/).
 
 ### **Install Blender**
 Ensure Blender is installed on your system and accessible via the command line. You can download Blender from [here](https://www.blender.org/download/).
