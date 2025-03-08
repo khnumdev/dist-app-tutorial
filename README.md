@@ -8,6 +8,8 @@
 
 # **Index**
 
+[Introduction](#introduction)
+
 1. [Part 1: Creating a Web App to Submit Blender Jobs](#part-1-creating-a-web-app-to-submit-blender-jobs)
    - [Introduction](#introduction)
    - [Step 1: Setting Up the Environment](#step-1-setting-up-the-environment)
@@ -45,9 +47,22 @@
    - [Why Docker Compose?](#why-docker-compose)
    - [Step 1: Creating the `docker-compose.yml` File](#step-1-creating-the-docker-composeyml-file)
    - [Directory Structure](#directory-structure)
-   - [Step 2: Building and Running the Docker Compose Services](#step-2-building-and-running-the-docker-compose-services)
-   - [Step 3: Testing the Orchestrator](#step-3-testing-the-orchestrator)
+   - [Step 2: Updating the Orchestrator to Reference Three Servers](#step-2-updating-the-orchestrator-to-reference-three-servers)
+   - [Step 3: Building and Running the Docker Compose Services](#step-3-building-and-running-the-docker-compose-services)
+   - [Step 4: Testing the Orchestrator](#step-4-testing-the-orchestrator)
    - [Conclusion](#conclusion-3)
+
+5. [Enhancements and Future Improvements](#enhancements-and-future-improvements)
+   - [Introduction](#introduction-4)
+   - [Support for 429 Response (Too Many Requests)](#support-for-429-response-too-many-requests)
+   - [Limit Server to Receive a Single Request](#limit-server-to-receive-a-single-request)
+   - [Strategies to Deploy in Production (e.g., AKS)](#strategies-to-deploy-in-production-eg-aks)
+   - [Other Potential Improvements](#other-potential-improvements)
+     - [Load Balancing](#load-balancing)
+     - [Fault Tolerance and High Availability](#fault-tolerance-and-high-availability)
+     - [Security Enhancements](#security-enhancements)
+     - [Performance Optimization](#performance-optimization)
+   - [Conclusion](#conclusion-4)
 
 ## **Introduction**
 In this tutorial, we will create a web app that allows users to submit Blender jobs. The app will consist of a NodeJS and Express API with endpoints to submit and check the status of rendering jobs. We'll use a hardcoded Blender example file for demonstration purposes.
@@ -283,8 +298,6 @@ const NODES = [
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:3003',
-    'http://localhost:3004',
-    'http://localhost:3005'
 ]; // List of node endpoints
 const BATCH_SIZE = 5; // Define batch size as a constant
 let jobs = {}; // Store all jobs
@@ -640,16 +653,38 @@ Docker Compose simplifies the process of managing multi-container Docker applica
 
 ### **Step 1: Creating the `docker-compose.yml` File**
 
-Create a `docker-compose.yml` file in the project directory to define the services for the Blender server and the orchestrator:
+Create a `docker-compose.yml` file in the project directory to define the three Blender server instances and the orchestrator:
 
 ```yaml
 version: '3.8'
 services:
-  blender-server:
+  blender-server-1:
     build:
       context: ./server
     ports:
-      - "3000:3000"
+      - "3001:3000"
+    volumes:
+      - ./blend/files:/app/blend/files
+      - ./output:/app/output
+    networks:
+      - blender-network
+
+  blender-server-2:
+    build:
+      context: ./server
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./blend/files:/app/blend/files
+      - ./output:/app/output
+    networks:
+      - blender-network
+
+  blender-server-3:
+    build:
+      context: ./server
+    ports:
+      - "3003:3000"
     volumes:
       - ./blend/files:/app/blend/files
       - ./output:/app/output
@@ -662,7 +697,9 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      - blender-server
+      - blender-server-1
+      - blender-server-2
+      - blender-server-3
     networks:
       - blender-network
 
@@ -691,7 +728,120 @@ project/
 └── docker-compose.yml
 ```
 
-### **Step 2: Building and Running the Docker Compose Services**
+### **Step 2: Updating the Orchestrator to Reference Three Servers**
+
+Update the `orchestrator.js` file to reference the three Blender servers:
+
+```javascript
+const express = require('express');
+const axios = require('axios'); // For making HTTP requests to the nodes
+const app = express();
+
+app.use(express.json());
+
+const port = 4000;
+const NODES = [
+    'http://blender-server-1:3000', // First server
+    'http://blender-server-2:3000', // Second server
+    'http://blender-server-3:3000', // Third server
+]; // List of node endpoints
+const BATCH_SIZE = 5; // Define batch size as a constant
+let jobs = {}; // Store all jobs
+
+// POST /render endpoint to start rendering a movie
+app.post('/render', async (req, res) => {
+    const { from, to } = req.body;
+    if (from === undefined || to === undefined) {
+        return res.status(400).send('Invalid input');
+    }
+
+    const jobId = generateJobId();
+    jobs[jobId] = { status: 'pending', batches: [] };
+    const frameChunks = splitFramesIntoChunks(from, to, BATCH_SIZE);
+    const jobPromises = frameChunks.map((chunk, index) =>
+        assignJobToNode(NODES[index % NODES.length], chunk.from, chunk.to, jobId)
+    );
+
+    try {
+        const results = await Promise.all(jobPromises);
+        jobs[jobId].batches.push(...results); // Save batch info
+        res.status(202).header('Location', `/status/${jobId}`).send({ jobId });
+    } catch (error) {
+        console.error('Error assigning jobs:', error);
+        jobs[jobId].status = 'failed';
+        res.status(500).send('Failed to distribute jobs');
+    }
+});
+
+// GET /status/:jobId endpoint to check overall job status
+app.get('/status/:jobId', async (req, res) => {
+    const jobId = req.params.jobId;
+    const job = jobs[jobId];
+
+    if (!job) {
+        return res.status(404).send('Job not found');
+    }
+
+    try {
+        const statusPromises = job.batches.map(batch =>
+            checkJobStatus(batch.node, batch.pid)
+        );
+        const statuses = await Promise.all(statusPromises);
+        const allCompleted = statuses.every(status => status === 'completed');
+
+        if (allCompleted) {
+            job.status = 'completed';
+            res.status(200).send('Job completed');
+        } else {
+            job.status = 'in-progress';
+            res.status(202).header('Location', `/status/${jobId}`).header('Retry-After', 5).send('Job still running');
+        }
+    } catch (error) {
+        console.error('Error checking job statuses:', error);
+        res.status(500).send('Failed to fetch statuses');
+    }
+});
+
+// Utility function to generate a unique job ID
+function generateJobId() {
+    return Math.random().toString(36).substring(2, 15);
+}
+
+// Utility function to split frames into chunks
+function splitFramesIntoChunks(from, to, batchSize) {
+    const chunks = [];
+    for (let i = from; i <= to; i += batchSize) {
+        chunks.push({ from: i, to: Math.min(i + batchSize - 1, to) });
+    }
+    return chunks;
+}
+
+// Utility function to assign a job to a node
+async function assignJobToNode(nodeUrl, from, to, jobId) {
+    console.log(`Invoking URL: ${nodeUrl}/job with frames ${from} to ${to}`);
+    try {
+        const response = await axios.post(`${nodeUrl}/job`, { from, to });
+        console.log(`Job assigned to ${nodeUrl} with PID: ${response.data.pid}`);
+        return { node: nodeUrl, pid: response.data.pid };
+    } catch (error) {
+        console.error(`Failed to assign job to ${nodeUrl}:`, error.message);
+        throw error;
+    }
+}
+
+// Utility function to check job status
+async function checkJobStatus(nodeUrl, pid) {
+    const response = await axios.get(`${nodeUrl}/job/${pid}`);
+    return response.data.status === 'Job completed' ? 'completed' : 'running';
+}
+
+// Start the orchestrator server
+app.listen(port, () => {
+    console.log(`Orchestrator running on port ${port}`);
+});
+```
+
+### **Step 3: Building and Running the Docker Compose Services**
 
 Navigate to the project directory and run the following command to build and start the services:
 
@@ -699,9 +849,9 @@ Navigate to the project directory and run the following command to build and sta
 docker-compose up --build
 ```
 
-This command will build the Docker images for both the Blender server and the orchestrator, mount the volumes, and start the containers.
+This command will build the Docker images for the three Blender servers and the orchestrator, mount the volumes, and start the containers.
 
-### **Step 3: Testing the Orchestrator**
+### **Step 4: Testing the Orchestrator**
 
 Submit a render request for 20 frames (split into batches of 5 frames) using `curl`:
 
@@ -713,4 +863,56 @@ This is the same `curl` command used in the regular case.
 
 ### **Conclusion**
 
-Using Docker Compose simplifies the management and deployment of multi-container applications like the Blender server and orchestrator. This setup can be easily extended for deployment to other environments.
+Using Docker Compose simplifies the management and deployment of multi-container applications like the Blender server and orchestrator. By setting up three Blender server instances, you can distribute rendering tasks more efficiently. This setup can be easily extended for deployment to other environments.
+
+## **Enhancements and Future Improvements**
+
+### **Introduction**
+In this chapter, we'll explore potential enhancements and improvements to optimize the Blender server and orchestrator setup. These suggestions aim to improve performance, scalability, reliability, and ease of deployment in production environments.
+
+### **Support for 429 Response (Too Many Requests)**
+To handle scenarios where too many requests are made to the server, we can implement rate limiting. When the rate limit is exceeded, the server should respond with a `429 Too Many Requests` status code. Rate limiting can help prevent overloading the server and ensure fair usage.
+
+**Key Points:**
+- **Implement Rate Limiting**: Use libraries like `express-rate-limit` in Node.js to limit the number of requests.
+- **Return 429 Status Code**: Configure the rate limiter to return a `429 Too Many Requests` status code when the limit is exceeded.
+- **Documentation**: [RFC 6585 - Additional HTTP Status Codes](https://tools.ietf.org/html/rfc6585)
+
+### **Limit Server to Receive a Single Request**
+To ensure that the Blender server processes one job at a time, we can implement a check to reject new jobs if a process is already running. The orchestrator should handle this by queuing pending requests and assigning them to available servers when they become free.
+
+**Key Points:**
+- **Single Job Processing**: Modify the server to check if a job is already running and reject new jobs with an appropriate status code (e.g., `503 Service Unavailable`).
+- **Job Queueing in Orchestrator**: Implement a job queue in the orchestrator to manage pending requests and assign them to available servers.
+- **Handling Job Rejections**: Orchestrator should retry rejected jobs until they are successfully assigned.
+
+### **Strategies to Deploy in Production (e.g., AKS)**
+Deploying the Blender server and orchestrator in a production environment requires careful planning to ensure scalability, reliability, and security. Azure Kubernetes Service (AKS) is a robust platform for managing containerized applications in production.
+
+**Key Points:**
+- **Cluster Autoscaler**: Configure AKS to automatically scale the number of nodes based on resource demands.
+- **Horizontal Pod Autoscaler**: Set up the Horizontal Pod Autoscaler to scale the number of pods based on CPU utilization or other metrics.
+- **Rolling Updates**: Use rolling updates to deploy changes without downtime.
+- **Monitoring and Logging**: Integrate with Azure Monitor and Azure Log Analytics to monitor and log application performance and issues.
+- **Documentation**: [Azure Kubernetes Service (AKS) Documentation](https://learn.microsoft.com/en-us/azure/aks/)
+
+### **Other Potential Improvements**
+
+1. **Load Balancing**
+   - **Description**: Implement load balancing to distribute incoming requests evenly across multiple Blender server instances.
+   - **Documentation**: [Kubernetes Services and Load Balancing](https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer)
+
+2. **Fault Tolerance and High Availability**
+   - **Description**: Ensure high availability by deploying multiple replicas of the Blender server and orchestrator, and configuring Kubernetes to handle pod failures and restarts.
+   - **Documentation**: [Kubernetes High Availability](https://kubernetes.io/docs/concepts/cluster-administration/high-availability/)
+
+3. **Security Enhancements**
+   - **Description**: Implement security best practices, such as network policies, role-based access control (RBAC), and secret management to protect sensitive data.
+   - **Documentation**: [Kubernetes Security Best Practices](https://kubernetes.io/docs/concepts/security/overview/)
+
+4. **Performance Optimization**
+   - **Description**: Optimize the performance of the Blender server and orchestrator by tuning resource limits and requests, and profiling the application to identify bottlenecks.
+   - **Documentation**: [Kubernetes Resource Management](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
+
+### **Conclusion**
+By implementing these enhancements and improvements, you can optimize the Blender server and orchestrator setup for better performance, scalability, reliability, and security in production environments. These suggestions provide a roadmap for future development and deployment strategies.
