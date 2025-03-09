@@ -26,10 +26,9 @@ We welcome contributions! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file
 2. [Part 2: Creating a render Orchestrator](#part-2-creating-an-orchestrator-for-blender-jobs)
    - [Introduction](#introduction-1)
    - [Why Use an Orchestrator?](#why-use-an-orchestrator)
-   - [Step 1: Setting Up the Orchestrator Environment](#step-1-setting-up-the-orchestrator-environment)
-   - [Step 2: Creating the Orchestrator API](#step-2-creating-the-orchestrator-api)
-   - [Step 3: Running the Orchestrator Server](#step-3-running-the-orchestrator-server)
-   - [Step 4: Using the Orchestrator API](#step-4-using-the-orchestrator-api)
+   - [Step 1: Creating the Orchestrator API](#step-1-creating-the-orchestrator-api)
+   - [Step 2: Running the Orchestrator Server](#step-2-running-the-orchestrator-server)
+   - [Step 3: Using the Orchestrator API](#step-3-using-the-orchestrator-api)
    - [Conclusion](#conclusion-1)
 
 3. [Part 3: Dockerizing the Blender Server and Orchestrator](#part-3-dockerizing-the-blender-server-and-orchestrator)
@@ -39,8 +38,8 @@ We welcome contributions! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file
    - [Warning: Limited CPU/GPU Resources in Docker](#warning-limited-cpugpu-resources-in-docker)
    - [Step 1: Installing Docker](#step-1-installing-docker)
    - [Step 2: Changes Required in `server.js` for Supporting Docker](#step-2-changes-required-in-serverjs-for-supporting-docker)
-   - [Step 3: Dockerfile for the Blender Server](#step-3-dockerfile-for-the-blender-server)
-   - [Step 4: Docker Network](#step-4-docker-network)
+   - [Step 3: Docker Network](#step-3-docker-network)
+   - [Step 4: Dockerfile for the Blender Server](#step-4-dockerfile-for-the-blender-server)
    - [Step 5: Changes Required in `orchestrator.js` for Supporting Docker Network](#step-5-changes-required-in-orchestratorjs-for-supporting-docker-network)
    - [Dockerfile for the Orchestrator](#dockerfile-for-the-orchestrator)
    - [Test the Orchestrator](#test-the-orchestrator)
@@ -95,6 +94,9 @@ mkdir distributed-system-tutorial
 cd distributed-system-tutorial
 ```
 
+### Windows support
+This tutorial has been tested on macOS / Linux. If you are using Windows, please ensure that when using paths you put the right values for escaping strings and dealing with spaces in the routes.
+
 ## Part 1: Rendering node
 ### **Step 1: Creating the API**
 
@@ -135,8 +137,16 @@ Define constants for `blenderPath`, `blendFilePath`, and `outputDir`:
 
 ```javascript
 const blenderPath = '{PUT HERE THE BLENDER PATH}'; // Populate with actual Blender path
-const blendFilePath = '{PUT HERE THE BLEND FILE PATH}'; // Populate with actual blend file path
+const blendFilePath = '/blend/files/splash-pokedstudio.blend'; // Populate with actual blend file path
 const outputDir = '{PUT HERE THE OUTPUT DIR}'; // Populate with desired output directory
+```
+
+Create a directory for storing the blend file to use:
+
+```bash 
+mkdir blend
+cd blend
+mkdir files
 ```
 
 #### **2. `/job` POST Endpoint with Headers**
@@ -155,6 +165,10 @@ const jobs = {}; // Store job processes by their PIDs
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
+
+const blenderPath = '{PUT HERE THE BLENDER PATH}'; // Populate with actual Blender path
+const blendFilePath = '/blend/files/splash-pokedstudio.blend'; // Populate with actual blend file path
+const outputDir = '{PUT HERE THE OUTPUT DIR}'; // Populate with desired output directory
 
 // POST /job endpoint with headers
 app.post('/job', (req, res) => {
@@ -242,12 +256,28 @@ For more details on Blender command-line arguments, refer to the [Blender docume
 
 ### **Step 4: Managing Processes**
 
+#### **Testing the API**
+Here are some example `curl` commands to test the API functionality implemented in Part 1:
+
+This command submits a request to render frames from `1` to `5`.
+
+```bash
+curl -X POST http://localhost:3000/job -H "Content-Type: application/json" -d '{"from": 1, "to": 5}'
+```
+
 #### **Killing a Process from the Terminal**
 To kill a Blender process manually, use the `kill` command followed by the process ID:
 
+For macos/Linux
 ```bash
 kill {processId}
 ```
+
+For Windows
+```bash
+taskkill /PID {processId} /T /F
+```
+
 Replace `{processId}` with the actual PID of the Blender process you want to terminate.
 
 ### **Step 5: Understanding Response Codes and Headers**
@@ -268,7 +298,7 @@ Polling is a technique where the client repeatedly requests the status of a job 
 The `Retry-After` header guides the client on when to make the next request, balancing the load on the server and ensuring timely updates to the client.
 
 ### **Conclusion**
-In this tutorial, we've created a web app to submit and monitor Blender rendering jobs. We set up a NodeJS and Express API with endpoints for job submission and status checking. We've also included instructions on how to manage Blender processes manually and explained the use of HTTP status codes and headers.
+In this tutorial, we've created a web app to submit and monitor Blender rendering jobs. We have set up a NodeJS and Express API with endpoints for job submission and status checking. We've also included instructions on how to manage Blender processes manually and we have explained the use of HTTP status codes and headers.
 
 # **Part 2: Creating an Orchestrator for Blender Jobs**
 
@@ -278,16 +308,7 @@ In this part of the tutorial, we will create an orchestrator to manage and distr
 ## **Why Use an Orchestrator?**
 An orchestrator helps manage and distribute workloads across multiple nodes, ensuring efficient use of resources and parallel processing. It can split a large task into smaller batches, distribute these batches to different nodes, and monitor their progress. This approach improves scalability, fault tolerance, and resource utilization.
 
-## **Step 1: Setting Up the Orchestrator Environment**
-
-### **Install NodeJS and Express**
-First, make sure you have NodeJS installed. You can download it from [here](https://nodejs.org/). Then, install the Express framework and Axios by running:
-
-```bash
-npm install express axios
-```
-
-## **Step 2: Creating the Orchestrator API**
+## **Step 1: Creating the Orchestrator API**
 
 ### **1. Initialize the NodeJS Project**
 Set up a new NodeJS project for the orchestrator:
@@ -416,7 +437,7 @@ The node URLs in the `NODES` array are based on Part 1 of this tutorial. They ca
 
 Once the POST request is made, you can see in the terminal of the `server.js` (from Part 1) how Blender is running.
 
-## **Step 3: Running the Orchestrator Server**
+## **Step 2: Running the Orchestrator Server**
 
 Navigate to the `orchestrator` directory and start the server:
 
@@ -430,7 +451,7 @@ You should see a message indicating that the server is running on port 4000:
 Orchestrator running on port 4000
 ```
 
-## **Step 4: Using the Orchestrator API**
+## **Step 3: Using the Orchestrator API**
 
 ### **Submitting a Render Job**
 
@@ -573,7 +594,15 @@ const blendFilePath = '/app/blend/files/splash-pokedstudio.blend'; // Adjust to 
 const outputDir = '/app/output/blender-render_####'; // Adjust to your mounted volume path
 ```
 
-### **Step 3: Dockerfile for the Blender Server**
+### **Step 3: Docker Network**
+
+To allow communication between the Blender server and the orchestrator, create a custom Docker network:
+
+```bash
+docker network create blender-network
+```
+
+### **Step 4: Dockerfile for the Blender Server**
 
 Create a `Dockerfile` for the Blender server in the project directory:
 
@@ -620,13 +649,7 @@ CMD ["node", "server.js"]
 
 Replace `/path/to/blend/files` and `/path/to/output` with the actual paths on your host system.
 
-### **Step 4: Docker Network**
-
-To allow communication between the Blender server and the orchestrator, create a custom Docker network:
-
-```bash
-docker network create blender-network
-```
+**NOTE** As `/path/to/blend/files` usually is a folder, path shoudl end with `\`
 
 ### **Step 5: Changes Required in `orchestrator.js` for Supporting Docker Network**
 
