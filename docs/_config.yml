@@ -1,0 +1,13 @@
+title: "Building Distributed Systems"
+description: "A practical tutorial on distributed rendering with Blender"
+theme: jekyll-theme-cayman
+markdown: kramdown
+highlighter: rouge
+
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+
+relative_links:
+  enabled: true
+  collections: true
