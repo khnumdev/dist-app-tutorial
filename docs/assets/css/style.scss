@@ -1,0 +1,29 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+.nav-links {
+  display: flex;
+  justify-content: space-between;
+  margin: 2rem 0;
+  
+  a {
+    padding: 0.5rem 1rem;
+    background: #159957;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #128f4e;
+    }
+  }
+}
+
+.learning-objectives {
+  background: #f3f4f6;
+  border-left: 4px solid #159957;
+  padding: 1rem;
+  margin: 1rem 0;
+}
