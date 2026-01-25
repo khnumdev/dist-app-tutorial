@@ -1,0 +1,20 @@
+{
+  "name": "blender-orchestrator",
+  "version": "1.0.0",
+  "description": "Orchestrator for distributed Blender rendering - Part 2 of tutorial",
+  "main": "orchestrator.js",
+  "scripts": {
+    "start": "node orchestrator.js",
+    "dev": "nodemon orchestrator.js"
+  },
+  "keywords": ["blender", "orchestrator", "distributed-systems"],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  blender-server-1:
+    build:
+      context: ./server
+    ports:
+      - "3001:3000"
+    environment:
+      - PORT=3000
+      - BLENDER_PATH=/usr/bin/blender
+      - BLEND_FILE_PATH=/app/blend/files/splash-pokedstudio.blend
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./blend/files:/app/blend/files
+      - ./output:/app/output
+    networks:
+      - blender-network
+
+  blender-server-2:
+    build:
+      context: ./server
+    ports:
+      - "3002:3000"
+    environment:
+      - PORT=3000
+      - BLENDER_PATH=/usr/bin/blender
+      - BLEND_FILE_PATH=/app/blend/files/splash-pokedstudio.blend
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./blend/files:/app/blend/files
+      - ./output:/app/output
+    networks:
+      - blender-network
+
+  blender-server-3:
+    build:
+      context: ./server
+    ports:
+      - "3003:3000"
+    environment:
+      - PORT=3000
+      - BLENDER_PATH=/usr/bin/blender
+      - BLEND_FILE_PATH=/app/blend/files/splash-pokedstudio.blend
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - ./blend/files:/app/blend/files
+      - ./output:/app/output
+    networks:
+      - blender-network
+
+  orchestrator:
+    build:
+      context: ./orchestrator
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - NODES=http://blender-server-1:3000,http://blender-server-2:3000,http://blender-server-3:3000
+      - BATCH_SIZE=5
+    depends_on:
+      - blender-server-1
+      - blender-server-2
+      - blender-server-3
+    networks:
+      - blender-network
+
+networks:
+  blender-network:
+    driver: bridge
