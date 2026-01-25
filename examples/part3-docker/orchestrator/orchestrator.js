@@ -103,7 +103,8 @@ async function assignJobToNode(nodeUrl, from, to, jobId) {
 async function checkJobStatus(nodeUrl, pid) {
     try {
         const response = await axios.get(`${nodeUrl}/job/${pid}`);
-        return response.status === 200 ? 'completed' : 'running';
+        // Server returns 200 with "Job completed" or 202 with "Job still running"
+        return response.data === 'Job completed' ? 'completed' : 'running';
     } catch (error) {
         console.error(`Error checking status for ${nodeUrl}/job/${pid}:`, error.message);
         return 'error';
