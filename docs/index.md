@@ -6,7 +6,7 @@ title: "Building Distributed Systems"
 
 > **Note:** This is a tutorial to start building an example of a distributed system and is not intended for a production deployment.
 
-![Distributed Rendering System](../img/image.png)
+![Distributed Rendering System](img/image.png)
 
 <div class="learning-objectives">
 <strong>🎯 What You'll Learn</strong>
