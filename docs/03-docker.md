@@ -342,8 +342,8 @@ In the next section, we'll use **Docker Compose** to manage multiple containers 
 ---
 
 <div class="nav-links">
-  <a href="02-orchestrator.md">← Part 2: Orchestrator</a>
-  <a href="04-docker-compose.md">Part 4: Docker Compose →</a>
+  <a href="02-orchestrator.html">← Part 2: Orchestrator</a>
+  <a href="04-docker-compose.html">Part 4: Docker Compose →</a>
 </div>
 
 ---

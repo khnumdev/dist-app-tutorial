@@ -6,7 +6,7 @@ title: "Building Distributed Systems"
 
 > **Note:** This is a tutorial to start building an example of a distributed system and is not intended for a production deployment.
 
-![Distributed Rendering System](../img/image.png)
+![Distributed Rendering System]({{ site.baseurl }}/img/image.png)
 
 <div class="learning-objectives">
 <strong>🎯 What You'll Learn</strong>
@@ -32,10 +32,10 @@ By the end of this tutorial, you'll have:
 
 ## Tutorial Structure
 
-### [0. Setting Up the Environment](00-setup.md)
+### [0. Setting Up the Environment](00-setup.html)
 Install prerequisites and prepare your development environment.
 
-### [1. Part 1: Rendering Node](01-rendering-node.md)
+### [1. Part 1: Rendering Node](01-rendering-node.html)
 Create a web API that accepts Blender rendering jobs and manages background processes.
 
 **You'll build:**
@@ -43,7 +43,7 @@ Create a web API that accepts Blender rendering jobs and manages background proc
 - Job submission and status checking
 - Process management for Blender renders
 
-### [2. Part 2: Orchestrator](02-orchestrator.md)
+### [2. Part 2: Orchestrator](02-orchestrator.html)
 Build an orchestrator that distributes rendering workloads across multiple nodes.
 
 **You'll learn:**
@@ -51,7 +51,7 @@ Build an orchestrator that distributes rendering workloads across multiple nodes
 - Parallel job execution with Promise.all()
 - Aggregating status from multiple nodes
 
-### [3. Part 3: Docker](03-docker.md)
+### [3. Part 3: Docker](03-docker.html)
 Containerize the rendering node and orchestrator for consistent deployment.
 
 **You'll create:**
@@ -59,7 +59,7 @@ Containerize the rendering node and orchestrator for consistent deployment.
 - Docker networks for inter-container communication
 - Container deployment strategies
 
-### [4. Part 4: Docker Compose](04-docker-compose.md)
+### [4. Part 4: Docker Compose](04-docker-compose.html)
 Deploy the entire distributed system with a single command.
 
 **You'll configure:**
@@ -67,7 +67,7 @@ Deploy the entire distributed system with a single command.
 - Service scaling (3 rendering nodes)
 - Network isolation and service discovery
 
-### [5. Enhancements and Future Improvements](05-enhancements.md)
+### [5. Enhancements and Future Improvements](05-enhancements.html)
 Explore production-ready improvements and advanced patterns.
 
 **Topics include:**
@@ -113,12 +113,12 @@ graph TB
 
 ## Getting Started
 
-Ready to begin? Start with [Setting Up the Environment →](00-setup.md)
+Ready to begin? Start with [Setting Up the Environment →](00-setup.html)
 
 ---
 
 <div class="nav-links">
-  <a href="00-setup.md">Start Tutorial →</a>
+  <a href="00-setup.html">Start Tutorial →</a>
 </div>
 
 ---

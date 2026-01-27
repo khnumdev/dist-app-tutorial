@@ -1,5 +1,6 @@
 title: "Building Distributed Systems"
 description: "A practical tutorial on distributed rendering with Blender"
+baseurl: "/dist-app-tutorial"
 theme: jekyll-theme-cayman
 markdown: kramdown
 highlighter: rouge
