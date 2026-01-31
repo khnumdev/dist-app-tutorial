@@ -290,8 +290,8 @@ In the next section, we'll build an **orchestrator** that distributes work acros
 ---
 
 <div class="nav-links">
-  <a href="00-setup.html">← Setup</a>
-  <a href="02-orchestrator.html">Part 2: Orchestrator →</a>
+  <a href="00-setup.md">← Setup</a>
+  <a href="02-orchestrator.md">Part 2: Orchestrator →</a>
 </div>
 
 ---

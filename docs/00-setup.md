@@ -90,8 +90,8 @@ Now that your environment is ready, let's build the first component: a rendering
 ---
 
 <div class="nav-links">
-  <a href="index.html">← Back to Overview</a>
-  <a href="01-rendering-node.html">Part 1: Rendering Node →</a>
+  <a href="index.md">← Back to Overview</a>
+  <a href="01-rendering-node.md">Part 1: Rendering Node →</a>
 </div>
 
 ---

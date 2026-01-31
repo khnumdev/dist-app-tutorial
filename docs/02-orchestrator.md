@@ -365,8 +365,8 @@ In the next section, we'll **containerize** both the rendering nodes and orchest
 ---
 
 <div class="nav-links">
-  <a href="01-rendering-node.html">← Part 1: Rendering Node</a>
-  <a href="03-docker.html">Part 3: Docker →</a>
+  <a href="01-rendering-node.md">← Part 1: Rendering Node</a>
+  <a href="03-docker.md">Part 3: Docker →</a>
 </div>
 
 ---

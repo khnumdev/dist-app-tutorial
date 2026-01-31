@@ -392,8 +392,8 @@ In the next section, we'll explore **enhancements and production considerations*
 ---
 
 <div class="nav-links">
-  <a href="03-docker.html">← Part 3: Docker</a>
-  <a href="05-enhancements.html">Part 5: Enhancements →</a>
+  <a href="03-docker.md">← Part 3: Docker</a>
+  <a href="05-enhancements.md">Part 5: Enhancements →</a>
 </div>
 
 ---
