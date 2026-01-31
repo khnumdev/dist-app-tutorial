@@ -32,10 +32,10 @@ By the end of this tutorial, you'll have:
 
 ## Tutorial Structure
 
-### [0. Setting Up the Environment](00-setup.html)
+### [0. Setting Up the Environment](00-setup.md)
 Install prerequisites and prepare your development environment.
 
-### [1. Part 1: Rendering Node](01-rendering-node.html)
+### [1. Part 1: Rendering Node](01-rendering-node.md)
 Create a web API that accepts Blender rendering jobs and manages background processes.
 
 **You'll build:**
@@ -43,7 +43,7 @@ Create a web API that accepts Blender rendering jobs and manages background proc
 - Job submission and status checking
 - Process management for Blender renders
 
-### [2. Part 2: Orchestrator](02-orchestrator.html)
+### [2. Part 2: Orchestrator](02-orchestrator.md)
 Build an orchestrator that distributes rendering workloads across multiple nodes.
 
 **You'll learn:**
@@ -51,7 +51,7 @@ Build an orchestrator that distributes rendering workloads across multiple nodes
 - Parallel job execution with Promise.all()
 - Aggregating status from multiple nodes
 
-### [3. Part 3: Docker](03-docker.html)
+### [3. Part 3: Docker](03-docker.md)
 Containerize the rendering node and orchestrator for consistent deployment.
 
 **You'll create:**
@@ -59,7 +59,7 @@ Containerize the rendering node and orchestrator for consistent deployment.
 - Docker networks for inter-container communication
 - Container deployment strategies
 
-### [4. Part 4: Docker Compose](04-docker-compose.html)
+### [4. Part 4: Docker Compose](04-docker-compose.md)
 Deploy the entire distributed system with a single command.
 
 **You'll configure:**
@@ -67,7 +67,7 @@ Deploy the entire distributed system with a single command.
 - Service scaling (3 rendering nodes)
 - Network isolation and service discovery
 
-### [5. Enhancements and Future Improvements](05-enhancements.html)
+### [5. Enhancements and Future Improvements](05-enhancements.md)
 Explore production-ready improvements and advanced patterns.
 
 **Topics include:**
@@ -113,12 +113,12 @@ graph TB
 
 ## Getting Started
 
-Ready to begin? Start with [Setting Up the Environment →](00-setup.html)
+Ready to begin? Start with [Setting Up the Environment →](00-setup.md)
 
 ---
 
 <div class="nav-links">
-  <a href="00-setup.html">Start Tutorial →</a>
+  <a href="00-setup.md">Start Tutorial →</a>
 </div>
 
 ---

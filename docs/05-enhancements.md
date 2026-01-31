@@ -575,8 +575,8 @@ This tutorial has taken you from a simple rendering node to a production-ready d
 ---
 
 <div class="nav-links">
-  <a href="04-docker-compose.html">← Part 4: Docker Compose</a>
-  <a href="index.html">Back to Overview</a>
+  <a href="04-docker-compose.md">← Part 4: Docker Compose</a>
+  <a href="index.md">Back to Overview</a>
 </div>
 
 ---
